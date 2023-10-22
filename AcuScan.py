@@ -22,7 +22,7 @@ MyAXURLHalf = "https://192.168.100.60:3443"
 MyAXURL = "https://192.168.100.60:3443/api/v1"
 MyAPIKEY = args.api_key
 MyTargetURL = args.target
-MyTargetDESC = "Test"
+MyTargetDESC = "API Scan"
 FullScanProfileID = "11111111-1111-1111-1111-111111111111"
 MyRequestHeaders = {'X-Auth': MyAPIKEY, 'Content-Type': 'application/json'}
 

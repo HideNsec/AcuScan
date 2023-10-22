@@ -1,7 +1,15 @@
 #!/bin/bash
 
+# Function to display the script version
+display_version() {
+    echo "AcuScan Version 1.0"
+}
+
 # Check if the target URL argument is provided
-if [ $# -eq 0 ]; then
+if [ "$1" == "-V" ]; then
+    display_version
+    exit 0
+elif [ $# -eq 0 ]; then
     echo "Usage: $0 <TargetURL>"
     exit 1
 fi

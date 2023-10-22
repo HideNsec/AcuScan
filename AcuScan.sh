@@ -2,7 +2,7 @@
 
 # Function to display the script version
 display_version() {
-    echo "AcuScan Version 1.0"
+    echo "V1.1"
 }
 
 # Check if the target URL argument is provided

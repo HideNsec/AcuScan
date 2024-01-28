@@ -12,17 +12,19 @@ def cleanup():
     dummy = requests.delete(MyAXURL + '/targets/' + MyTargetID, headers = MyRequestHeaders, verify=False)
 
 parser = argparse.ArgumentParser(description="AWVS scanner script")
+
+parser.add_argument('--ip', required=True, help='Acunetix IP')
 parser.add_argument('--api_key', required=True, help='API key')
 parser.add_argument('--target', required=True, help='Target URL')
 
 args = parser.parse_args()
 
-# Declare variables
-MyAXURLHalf = "https://192.168.100.60:3443"
-MyAXURL = "https://192.168.100.60:3443/api/v1"
+MyAXURLHalf =  f"https://{args.ip}"
+MyAXURL = f"https://{args.ip}/api/v1"
+
 MyAPIKEY = args.api_key
 MyTargetURL = args.target
-MyTargetDESC = "API Scan"
+MyTargetDESC = "CLI Run"
 FullScanProfileID = "11111111-1111-1111-1111-111111111111"
 MyRequestHeaders = {'X-Auth': MyAPIKEY, 'Content-Type': 'application/json'}
 
@@ -69,13 +71,6 @@ def configuration(url,target_id,default_scanning_profile_id,MyRequestHeaders):#c
 
     r = requests.patch(url=configuration_url,data=json.dumps(data), headers=MyRequestHeaders, timeout=30, verify=False)
     #print(configuration_url,r.text)
-
-
-# Create our intended target - target ID is in the JSON response
-#MyRequestBody = {"address":MyTargetURL,"description":MyTargetDESC,"type":"default","criticality":10}
-#MyTargetIDResponse = requests.post(MyAXURL + '/targets', json=MyRequestBody, headers = MyRequestHeaders, verify=False)
-#MyTargetIDjson=json.loads(MyTargetIDResponse.content)
-
 
 MyTargetID=scan(MyAXURLHalf,MyTargetURL,FullScanProfileID,False,MyRequestHeaders)
 
@@ -172,8 +167,8 @@ def generated_report(MyAXURLHalf,scan_id,target,MyRequestHeaders,MyTargetID):
         raise e
 
     finally:
-        ###delete_scan(scan_id,MyAXURLHalf,MyRequestHeaders)
-        ###delete_target(MyTargetID,MyAXURLHalf,MyRequestHeaders)
+        delete_scan(scan_id,MyAXURLHalf,MyRequestHeaders)
+        #delete_target(MyTargetID,MyAXURLHalf,MyRequestHeaders)
         print("Ignore Deleting")
 
 def get_report(MyAXURLHalf,reportid,MyRequestHeaders):
@@ -186,53 +181,49 @@ def get_report(MyAXURLHalf,reportid,MyRequestHeaders):
 
 
 # Trigger a scan on the target - scan ID is in the HTTP response headers
-MyRequestBody = {"profile_id":FullScanProfileID,"incremental":False,"schedule":{"disable":False,"start_date":None,"time_sensitive":False},"user_authorized_to_scan":"yes","target_id":MyTargetID}
-MyScanIDResponse = requests.post(MyAXURL + '/scans', json=MyRequestBody, headers = MyRequestHeaders, verify=False)
-MyScanID = MyScanIDResponse.headers["Location"].replace("/api/v1/scans/","")
-LoopCondition=True
-while LoopCondition :
- MyScanStatusResponse = requests.get(MyAXURL + '/scans/' + MyScanID, headers = MyRequestHeaders, verify=False)
- MyScanStatusjson = json.loads(MyScanStatusResponse.content)
- MyScanStatus = MyScanStatusjson["current_session"]["status"]
- if (MyScanStatus=="processing"):
-   print("Scan Status: Processing - waiting 30 seconds...")
- elif (MyScanStatus=="scheduled"):
-   print("Scan Status: Scheduled - waiting 30 seconds...")
- elif (MyScanStatus=="completed"):
-   LoopCondition=False
- elif (MyScanStatus=="failed"):
-   LoopCondition=False
- else:
-   print("Invalid Scan Status: Aborting")
-   ###cleanup
-   exit()
+MyRequestBody = {"profile_id": FullScanProfileID, "incremental": False, "schedule": {"disable": False, "start_date": None, "time_sensitive": False}, "user_authorized_to_scan": "yes", "target_id": MyTargetID}
+MyScanIDResponse = requests.post(MyAXURL + '/scans', json=MyRequestBody, headers=MyRequestHeaders, verify=False)
+MyScanID = MyScanIDResponse.headers["Location"].replace("/api/v1/scans/", "")
 
- MyScanStatus=""
- time.sleep(30)
+LoopCondition = True
+while LoopCondition:
+    MyScanStatusResponse = requests.get(MyAXURL + '/scans/' + MyScanID, headers=MyRequestHeaders, verify=False)
+    MyScanStatusjson = json.loads(MyScanStatusResponse.content)
+    MyScanStatus = MyScanStatusjson["current_session"]["status"]
+    if (MyScanStatus == "processing"):
+        print("Scan Status: Processing - waiting 30 seconds...")
+    elif (MyScanStatus == "scheduled"):
+        print("Scan Status: Scheduled - waiting 30 seconds...")
+    elif (MyScanStatus == "completed"):
+        LoopCondition = False
+    elif (MyScanStatus == "failed"):
+        LoopCondition = False
+    else:
+        print("Invalid Scan Status: Aborting")
+        # cleanup
+        exit()
 
-
+    MyScanStatus = ""
+    time.sleep(30)
 
 # Obtain the scan session ID
-MyScanSessionResponse = requests.get(MyAXURL + '/scans/' + MyScanID, headers = MyRequestHeaders, verify=False)
+MyScanSessionResponse = requests.get(MyAXURL + '/scans/' + MyScanID, headers=MyRequestHeaders, verify=False)
 MyScanSessionjson = json.loads(MyScanSessionResponse.content)
 MyScanSessionID = MyScanSessionjson["current_session"]["scan_session_id"]
 
-
 # Obtain the scan result ID
-MyScanResultResponse = requests.get(MyAXURL + '/scans/' + MyScanID + "/results", headers = MyRequestHeaders, verify=False)
+MyScanResultResponse = requests.get(MyAXURL + '/scans/' + MyScanID + "/results", headers=MyRequestHeaders, verify=False)
 MyScanResultjson = json.loads(MyScanResultResponse.content)
 MyScanResultID = MyScanResultjson["results"][0]["result_id"]
 
-
 # Obtain scan vulnerabilities
-MyScanVulnerabilitiesResponse = requests.get(MyAXURL + '/scans/' + MyScanID + '/results/' + MyScanResultID + '/vulnerabilities', headers = MyRequestHeaders, verify=False)
+MyScanVulnerabilitiesResponse = requests.get(MyAXURL + '/scans/' + MyScanID + '/results/' + MyScanResultID + '/vulnerabilities', headers=MyRequestHeaders, verify=False)
 
+print(" ")
+print("Target ID: " + MyTargetID)
+print("Scan ID: " + MyScanID)
+print("Scan Session ID: " + MyScanSessionID)
+print("Scan Result ID: " + MyScanResultID)
 
-print (" ")
-print ("Target ID: " + MyTargetID)
-print ("Scan ID: " + MyScanID)
-print ("Scan Session ID: " + MyScanSessionID)
-print ("Scan Result ID: " + MyScanResultID)
-
-
-generated_report(MyAXURLHalf,MyScanSessionID,MyTargetURL,MyRequestHeaders,MyTargetID)
+# Вызываем функцию для генерации отчета
+generated_report(MyAXURLHalf, MyScanSessionID, MyTargetURL, MyRequestHeaders, MyTargetID)

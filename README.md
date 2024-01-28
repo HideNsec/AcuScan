@@ -1,3 +1,11 @@
 # Acunetix API FULL Scan module for reNgine
 
-python3 AcuScan.py --api_key API --target TARGET
+usage: AcuScan.py [-h] --ip IP --api_key API_KEY --target TARGET
+
+AWVS scanner script
+
+options:
+  -h, --help         show this help message and exit
+  --ip IP            Acunetix IP
+  --api_key API_KEY  API key
+  --target TARGET    Target URL
